@@ -1,15 +1,14 @@
-<? if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die(); $arComponentDescription = array(
-    "NAME" => GetMessage("Форма на чистом js"),
-);
+<?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
+
+use Bitrix\Main\Localization\Loc;
+
+$arComponentDescription = [
+    "NAME" => Loc::getMessage("COMPONENT"),
+    "DESCRIPTION" => Loc::getMessage("COMPONENT_DESCRIPTION"),
+    "COMPLEX" => "N",
+    "PATH" => [
+        "ID" => Loc::getMessage("COMPONENT_PATH_ID"),
+        "NAME" => Loc::getMessage("COMPONENT_PATH_NAME"),
+    ],
+];
 ?>
-
-<!--вызов компонента-->
-<?// $APPLICATION->IncludeComponent(
-//    "form:form.js",
-//    ".default",
-//    Array(
-//'MAIL_EVENT' => 'FORM_SENDED',
-
-//    ),
-//    false
-//);?>
