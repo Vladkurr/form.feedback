@@ -2,12 +2,14 @@
 
 __Component calling example for default template:__
 ```php
-$APPLICATION->IncludeComponent(
-    "form:form.js",
-    ".default",
-    array(
-        'MAIL_EVENT' => 'TEST',
-        'TOKEN' => 'form001',
-    )
-);
+<?$APPLICATION->IncludeComponent(
+	"form:form.js",
+	"",
+	Array(
+		"MAIL_TO" => "vandreevic@mail.ru",
+		"MAIL_EVENT" => array("TEST"),
+		"TOKEN" => "form001"
+	)
+);?>
+
 ```
