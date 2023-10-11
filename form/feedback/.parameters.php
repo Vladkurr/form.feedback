@@ -17,9 +17,37 @@ while($arType = $dbType->GetNext()) {
         $arEvent[$arType["EVENT_NAME"]] = $arType["EVENT_NAME"] . " [" . $arType["ID"] . "]";
     }
 }
+$arTypesEx = CIBlockParameters::GetIBlockTypes();
+$iblockFilter = [
+    'ACTIVE' => 'Y',
+];
+if (!empty($arCurrentValues['IBLOCK_TYPE']))
+{
+    $iblockFilter['TYPE'] = $arCurrentValues['IBLOCK_TYPE'];
+}
+$db_iblock = CIBlock::GetList(["SORT"=>"ASC"], $iblockFilter);
+while($arRes = $db_iblock->Fetch())
+{
+    $arIBlocks[$arRes["ID"]] = "[" . $arRes["ID"] . "] " . $arRes["NAME"];
+}
 $arComponentParameters = [
     "PARAMETERS" => [
-        "MAIL" => [
+        "IBLOCK_TYPE" => [
+            "PARENT" => "BASE",
+            "NAME" => Loc::GetMessage("IBLOCK_TYPE"),
+            "TYPE" => "LIST",
+            "VALUES" => $arTypesEx,
+            "DEFAULT" => "news",
+            "REFRESH" => "Y",
+        ],
+        "IBLOCK_ID" => [
+            "PARENT" => "BASE",
+            "NAME" => Loc::GetMessage("IBLOCK_ID"),
+            "TYPE" => "LIST",
+            "VALUES" => $arIBlocks,
+            "REFRESH" => "Y",
+        ],
+        "MAIL_TO" => [
             "NAME" => Loc::getMessage('PROP_EMAIL'),
             "TYPE" => "STRING",
             "MULTIPLE" => "N",
