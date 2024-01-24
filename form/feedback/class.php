@@ -14,10 +14,12 @@ class Form extends CBitrixComponent
         return $result;
     }
 
-    private function mailer() // отправка почты через mail() и активация почтового шаблона
+    private function mailer($id) // отправка почты через mail() и активация почтового шаблона
     {
         if ($this->arParams["MAIL_EVENT"] != null) {
             foreach ($this->arParams["MAIL_EVENT"] as $event) {
+                $urlInAdmin = 'http://'. $_SERVER["SERVER_NAME"] .'/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->arParams['IBLOCK_ID'] . '&type=Forms&lang=ru&ID=' . $id . '&find_section_section=-1&WF=Y';
+                $_POST["ADMIN_URL"] = $urlInAdmin;
                 echo CEvent::Send($event, SITE_ID, $_POST);
             }
         }
@@ -51,10 +53,11 @@ class Form extends CBitrixComponent
                 "IBLOCK_TYPE" => $this->arParams["IBLOCK_TYPE"],
                 "CODE" => date('l jS \of F Y h:i:s A'),
                 "NAME" => "На сайте заполнена форма " . $this->arParams["TOKEN"],
-                "ACTIVE" => "Y",
+                "ACTIVE" => "N",
                 "PROPERTY_VALUES" => $propertyValues,
             );
             $res = $el->Add($arLoadProductArray, false, false, true);
+            return $res;
         }
     }
 
@@ -62,9 +65,8 @@ class Form extends CBitrixComponent
     {
         if ($this->request->getPost("TOKEN") == $this->arParams["TOKEN"]) {
             $GLOBALS["APPLICATION"]->RestartBuffer(); // строка для удобства отладки
-
-            $this->mailer();
-            $this->addToIblock();
+            $elemId = $this->addToIblock();
+            $this->mailer($elemId);
         } else {
             $this->includeComponentTemplate();
         }

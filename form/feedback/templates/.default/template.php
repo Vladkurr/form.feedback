@@ -3,45 +3,46 @@
     <input class="input" type="text" name="NAME" placeholder="Имя" required>
     <input class="input" type="text" name="PHONE" placeholder="Контактный телефон" required>
     <input class="input" type="text" name="MAIL" placeholder="Электронная почта" required>
-    <input class="input" type="file" name="FILE" multiple required>
-    <input class="input" type="file" name="FILE2[]" multiple required>
-    <button class="submit4 button button-primary" type="button">Отправить</button>
+    <button id="btn_<?= $arParams['TOKEN'] ?>" type="button">Отправить</button>
 </form>
 <script>
-    if (status == null) {
-        let status = false;
-    } else status = false;
     // reject reload
     document.querySelector("#<?= $arParams["TOKEN"] ?>").addEventListener("submit", (event) => {
         event.preventDefault()
     });
-    //valid
-    //function valid(e, name, text, regex = /.{1}/) {
-    //    if (e.name == name) {
-    //        if (!regex.test(e.value)) {
-    //            if (e.style != "border: 1px solid red;") {
-    //                e.style = "border: 1px solid red;"
-    //                status = false
-    //            }
-    //        } else {
-    //            e.style = ""
-    //            status = true
-    //        }
-    //
-    //    }
-    //}
-    //document.querySelector("#<?php //= $arParams["TOKEN"] ?>//").addEventListener("keyup", (e) => {
-    //    valid(e.target, "name", "Поле обязательно к заполнению")
-    //    valid(e.target, "mail", "почта введена неверно", /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/iu)
-    //    valid(e.target, "phone", "Номер введен неверно", /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/)
-    //});
+
+    function validQuest(e, name, text, regex = /.{1}/) {
+        if (e.name == name) {
+            if (!regex.test(e.value)) {
+                if(!e.parentElement.classList.contains("form__cell_er")){
+                    e.parentElement.classList.add("form__cell_er");
+                    if(name != "PHONE"){
+                        e.parentElement.innerHTML += `<span style="color:#000">${text}</span>`;
+                    }
+                }
+                window.FormStatus = false;
+            } else {
+                if(e.parentElement.classList.contains("form__cell_er")){
+                    if(e.parentElement.querySelector("span")){
+                        e.parentElement.querySelector("span").remove();
+                    }
+                    e.parentElement.classList.remove("form__cell_er");
+                }
+            }
+        }
+    }
+
     //submit
-    document.querySelector(".submit4").addEventListener("click", async (event) => {
+    document.querySelector("#btn_<?= $arParams["TOKEN"] ?>").addEventListener("click", async (event) => {
         // send ajax request with values of inputs
-        let data = new FormData(document.querySelector("#<?= $arParams["TOKEN"] ?>"))
-        data.append("TOKEN", "<?= $arParams["TOKEN"] ?>")
-        let curDir = document.location.protocol + '//' + document.location.host + document.location.pathname;
-        if (true) {
+        window.FormStatus = true;
+        validQuest(document.querySelector("#<?= $arParams["TOKEN"] ?> input[name='NAME']"), "NAME", "Заполните поле")
+        validQuest(document.querySelector("#<?= $arParams["TOKEN"] ?> input[name='MAIL']"), "MAIL", "почта введена неверно", /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/iu)
+        validQuest(document.querySelector("#<?= $arParams["TOKEN"] ?> input[name='PHONE']"), "PHONE", "Номер введен неверно", /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/)
+        if (window.FormStatus) {
+            let data = new FormData(document.querySelector("#<?= $arParams["TOKEN"] ?>"))
+            data.append("TOKEN", "<?= $arParams["TOKEN"] ?>")
+            let curDir = document.location.protocol + '//' + document.location.host + document.location.pathname;
             let result = await fetch(curDir, {
                 method: 'POST',
                 body: data,
@@ -50,14 +51,12 @@
             }).then(data => {
                 return data;
             })
-            console.log(result)
-        } else {
-            //valid(document.querySelector("#<?php //= $arParams["TOKEN"] ?>// input[name='name']"), "name", "Поле обязательно к заполнению")
-            //valid(document.querySelector("#<?php //= $arParams["TOKEN"] ?>// [name='mail']"), "mail", "почта введена неверно", /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/iu)
-            //valid(document.querySelector("#<?php //= $arParams["TOKEN"] ?>// input[name='phone']"), "phone", "Номер введен неверно", /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/)
+            // document.querySelector("#open-modal").click()
         }
-    })
-    ;
+
+    });
+
+
 </script>
 
 
