@@ -64,7 +64,7 @@ class Form extends CBitrixComponent
         } else {
             echo $result['result'];
         }
-    }
+    } // создание лида в b24 (стандартные поля)
 
     private function mailer($id) // отправка почты через mail() и активация почтового шаблона
     {
@@ -111,8 +111,7 @@ class Form extends CBitrixComponent
             $GLOBALS["APPLICATION"]->RestartBuffer(); // строка для удобства отладки
             $id = $this->addToIblock(); // добавление в инфоблок
             $this->mailer($id); // отправка почты
-            $this->leadCreate(); // создание лида (b24)
-
+            if($this->arParams["CRM"] == "Y") $this->leadCreate(); // создание лида (b24)
             // file_put_contents($_SERVER["DOCUMENT_ROOT"] . "/test.txt", serialize($_POST)); // debug
         } else {
             // обычный запуск компонента
