@@ -1,7 +1,5 @@
 <?php if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 
-/*var SITE_ID */
-
 class Form extends CBitrixComponent
 {
     private function normalizeFiles($name, $vector) // создание удобного массива файлов
@@ -17,34 +15,30 @@ class Form extends CBitrixComponent
         return $result;
     }
 
-    private function leadCreate()
-    {
-        $data = $_POST;
+    private function getFields(){
+        $data = [];
 
         // соответствие полей
-        $data["EMAIL"] = $data["MAIL"];
+        // стандартные поля:
+        // NAME
+        // PHONE
+        // EMAIL
+        // COMMENT
+        $data["EMAIL"] = $_POST["MAIL"];
+        $data["NAME"] = $_POST["NAME"];
+        $data["PHONE"] = $_POST["PHONE"];
         $data["COMMENT"] = $_POST["MESSAGE"] ? "Доп. информация: " . $_POST["MESSAGE"] . "<br>" : "";
-        $data["COMMENT"] .= 'ссылка на страницу - ' . $data["PAGE"];
+        $data["COMMENT"] .= 'ссылка на страницу - ' . $_POST["PAGE"];
 
-        $queryData = http_build_query(array(
-            'fields' => array(
-                "TITLE" => 'Заполнена форма на сайте investsochi.ru', //Заголовок лида
-                "SOURCE_ID" => 'WEB', //Источник лида
-                "NAME" => $data['NAME'] ? $data['NAME'] : 'Имя не заполнено', //Имя контакта
-                "EMAIL" => [["VALUE" => $data['EMAIL'], "VALUE_TYPE" => "WORK"]], //Почта контакта
-                "PHONE" => [["VALUE" => $data['PHONE'], "VALUE_TYPE" => "WORK"]], //Телефон контакта
-                "COMMENTS" => $data["COMMENT"],
-            ),
-            'params' => array("REGISTER_SONET_EVENT" => "Y"), //Говорим, что требуется зарегистрировать новое событие и оповестить всех прчиастных
-        ));
+        return $data;
+    } // установи соответстие полей Bitrix и B24!!
 
-        //обращаемся к Битрикс24 при помощи функции curl_exec
-        //метод crm.lead.add.json добавляет лид
-        $rest = 'crm.lead.add.json';
+    private function sendRequest($request, $method)
+    {
+        // поля запроса и метод
+        $queryData = http_build_query($request);
+        $queryUrl = 'https://investsochi.bitrix24.ru/rest/140/y4sjwv9qaqsj0dh4/' . $method;
 
-        //url берется из созданного вебхука, удалив в нем окончание prifile/
-        //и добавив метод $rest на добавление лида
-        $queryUrl = 'https://investsochi.bitrix24.ru/rest/140/y4sjwv9qaqsj0dh4/' . $rest;
         $curl = curl_init();
         curl_setopt_array($curl, array(
             CURLOPT_SSL_VERIFYPEER => 0,
@@ -55,15 +49,77 @@ class Form extends CBitrixComponent
             CURLOPT_POSTFIELDS => $queryData,
         ));
 
+        //url берется из созданного вебхука, удалив в нем окончание prifile/
+        //и добавив метод $rest на добавление лида
         $result = curl_exec($curl);
         curl_close($curl);
         $result = json_decode($result, 1);
 
+        // возврат результата/ошибки
         if (array_key_exists('error', $result)) {
-            echo "Ошибка при сохранении лида: " . $result['error_description'] . "";
+            return "Ошибка при сохранении лида: " . $result['error_description'];
         } else {
-            echo $result['result'];
+            return $result['result'];
         }
+    } // отправка запроса b24
+
+    private function findContact(){
+        $fields = $this->GetFields();
+        $request = [
+            'filter' => [
+                "PHONE" => $fields["PHONE"],
+            ],
+            "select" => [
+                "ID"
+            ]
+        ];
+        $method = 'crm.contact.list.json';
+
+        $res = $this->sendRequest($request, $method);
+        if(!empty($res)){
+            return $res;
+        }
+        return !empty($this->sendRequest($request, $method));
+    } // проверка наличия контакта b24 (true/false)
+
+    private function createContact(){
+        $fields = $this->GetFields();
+        $request = [
+            'fields' => [
+                "NAME" => $fields["NAME"],
+                "PHONE" => array((object)["VALUE" => $fields["PHONE"], "VALUE_TYPE" => "WORK"]),
+                "EMAIL" => array((object)["VALUE" => $fields["EMAIL"], "VALUE_TYPE" => "WORK"])
+            ],
+        ];
+        $method = 'crm.contact.add.json';
+        return $this->sendRequest($request, $method);
+    } // создание контакта b24
+
+    private function leadCreate()
+    {
+        $fields = $this->getFields();
+        $FindedContact = $this->findContact();
+        if(!$FindedContact) $contactId = $this->createContact();
+        else $contactId = $FindedContact[0]["ID"];
+
+        $request = [
+            'fields' => [
+                "TITLE" => 'Заполнена форма на сайте investsochi.ru', //Заголовок лида
+                "SOURCE_ID" => 'WEB', //Источник лида
+                "NAME" => $fields['NAME'] ? $fields['NAME'] : 'Имя не заполнено', //Имя контакта
+                "EMAIL" => [["VALUE" => $fields['EMAIL'], "VALUE_TYPE" => "WORK"]], //Почта контакта
+                "PHONE" => [["VALUE" => $fields['PHONE'], "VALUE_TYPE" => "WORK"]], //Телефон контакта
+                "COMMENTS" => $fields["COMMENT"], // доп. иформация от пользователя
+                "CONTACT_ID" => $contactId ? $contactId : "", // id созданного контакта
+                "ASSIGNED_BY_ID" => 1688 // 123 Николай Кузьмин
+            ],
+            'params' => array("REGISTER_SONET_EVENT" => "Y"), //Говорим, что требуется зарегистрировать новое событие и оповестить всех прчиастных
+        ];
+
+        //обращаемся к Битрикс24 при помощи функции curl_exec
+        //метод crm.lead.add.json добавляет лид
+        $method = 'crm.lead.add.json';
+        return $this->sendRequest($request, $method);
     } // создание лида в b24 (стандартные поля)
 
     private function mailer($id) // отправка почты через mail() и активация почтового шаблона
@@ -106,13 +162,12 @@ class Form extends CBitrixComponent
 
     public function executeComponent() // инициализация компонента
     {
-        // если есть $_POST - компонент не инициализирует форму, запускает ее отправку
+        // если есть $_POST - компонент не инициализирует форму,а запускает ее отправку
         if ($this->request->getPost("TOKEN") == $this->arParams["TOKEN"]) {
             $GLOBALS["APPLICATION"]->RestartBuffer(); // строка для удобства отладки
             $id = $this->addToIblock(); // добавление в инфоблок
             $this->mailer($id); // отправка почты
-            if($this->arParams["CRM"] == "Y") $this->leadCreate(); // создание лида (b24)
-            // file_put_contents($_SERVER["DOCUMENT_ROOT"] . "/test.txt", serialize($_POST)); // debug
+            $this->leadCreate(); // создание лида (b24)
         } else {
             // обычный запуск компонента
             $this->includeComponentTemplate();
