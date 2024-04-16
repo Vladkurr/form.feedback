@@ -1,47 +1,92 @@
 <? if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die(); ?>
-<form id="<?= $arParams['TOKEN'] ?>">
-    <input class="input" type="text" name="NAME" placeholder="Имя" required>
-    <input class="input" type="text" name="PHONE" placeholder="Контактный телефон" required>
-    <input class="input" type="text" name="MAIL" placeholder="Электронная почта" required>
-    <input class="input" type="file" name="FILE" multiple required>
-    <input class="input" type="file" name="FILE2[]" multiple required>
-    <button class="submit4 button button-primary" type="button">Отправить</button>
-</form>
+<script src="https://www.google.com/recaptcha/api.js?render=6LeklLwpAAAAABMCnqHdw0hBHj8MlivzApw0F857"></script>
 <script>
-    if (status == null) {
-        let status = false;
-    } else status = false;
+    grecaptcha.ready(function () {
+        grecaptcha.execute('6LeklLwpAAAAABMCnqHdw0hBHj8MlivzApw0F857', {action: 'contact'}).then(function (token) {
+            var recaptchaResponse = document.getElementById('recaptchaResponse');
+            recaptchaResponse.value = token;
+        });
+    });
+</script>
+<div class="contacts__form">
+    <div class="contacts__form-title">Остались вопросы? Будем рады помочь!</div>
+    <form id="<?= $arParams["TOKEN"] ?>">
+        <div class="form">
+            <div class="form__row">
+                <div class="form__cell">
+                    <div class="form__item">
+                        <label>Имя</label>
+                        <input type="text" placeholder="" name="NAME">
+                    </div>
+                </div>
+                <div class="form__cell">
+                    <div class="form__item">
+                        <label>E-mail</label>
+                        <input type="email" placeholder="" name="MAIL">
+                    </div>
+                </div>
+            </div>
+            <div class="form__row">
+                <div class="form__cell w100">
+                    <div class="form__item">
+                        <label>Сообщение</label>
+                        <textarea name="MESSAGE"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form__row">
+                <div class="form__cell w100">
+                    <div class="form__check">
+                        <input type="checkbox" id="check" checked>
+                        <label for="check">Нажимая кнопку "Оформить заказ", я даю согласие на обработку
+                            своих персональных данных в соответствии с <a href="/policy/">Политикой
+                                конфиденциальности</a> </label>
+                    </div>
+                </div>
+            </div>
+            <div class="form__row">
+                <div class="form__cell w100">
+                    <button type="button" id="btn_<?= $arParams["TOKEN"] ?>" class="btn">Отправить</button>
+                </div>
+            </div>
+        </div>
+        <input type="hidden" name="recaptcha_response" id="recaptchaResponse">
+        <a id="send-btn" href="#send" class="open-modal"></a>
+        <a id="error-btn" href="#nn" class="open-modal"></a>
+
+    </form>
+</div>
+
+<script>
     // reject reload
     document.querySelector("#<?= $arParams["TOKEN"] ?>").addEventListener("submit", (event) => {
         event.preventDefault()
     });
+
     //valid
-    //function valid(e, name, text, regex = /.{1}/) {
-    //    if (e.name == name) {
-    //        if (!regex.test(e.value)) {
-    //            if (e.style != "border: 1px solid red;") {
-    //                e.style = "border: 1px solid red;"
-    //                status = false
-    //            }
-    //        } else {
-    //            e.style = ""
-    //            status = true
-    //        }
-    //
-    //    }
-    //}
-    //document.querySelector("#<?php //= $arParams["TOKEN"] ?>//").addEventListener("keyup", (e) => {
-    //    valid(e.target, "name", "Поле обязательно к заполнению")
-    //    valid(e.target, "mail", "почта введена неверно", /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/iu)
-    //    valid(e.target, "phone", "Номер введен неверно", /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/)
-    //});
+    function validContacts(e, name, text, regex = /.{1}/) {
+        if (e.name == name) {
+            if (!regex.test(e.value)) {
+                e.style = "border: 1px solid red"
+                window.FormStatus = false;
+            } else {
+                e.style = "";
+            }
+        }
+    }
+
     //submit
-    document.querySelector(".submit4").addEventListener("click", async (event) => {
+    document.querySelector("#btn_<?= $arParams["TOKEN"] ?>").addEventListener("click", async (event) => {
         // send ajax request with values of inputs
+        window.FormStatus = true;
+        validContacts(document.querySelector("#<?= $arParams["TOKEN"] ?> input[name='NAME']"), "NAME", "Поле обязательно к заполнению")
+        validContacts(document.querySelector("#<?= $arParams["TOKEN"] ?> input[name='MAIL']"), "NAME", "Поле обязательно к заполнению")
+        let curDir = document.location.protocol + '//' + document.location.host + document.location.pathname;
         let data = new FormData(document.querySelector("#<?= $arParams["TOKEN"] ?>"))
         data.append("TOKEN", "<?= $arParams["TOKEN"] ?>")
-        let curDir = document.location.protocol + '//' + document.location.host + document.location.pathname;
-        if (true) {
+        data.append("PAGE", curDir)
+        if (window.FormStatus) {
             let result = await fetch(curDir, {
                 method: 'POST',
                 body: data,
@@ -50,14 +95,20 @@
             }).then(data => {
                 return data;
             })
-            console.log(result)
+            result = JSON.parse(result.trim())
+
+            if(result.STATUS == "success"){
+                document.querySelector("#send-btn").click()
+            }
+            else{
+                document.querySelector("#error-btn").click()
+            }
         } else {
-            //valid(document.querySelector("#<?php //= $arParams["TOKEN"] ?>// input[name='name']"), "name", "Поле обязательно к заполнению")
-            //valid(document.querySelector("#<?php //= $arParams["TOKEN"] ?>// [name='mail']"), "mail", "почта введена неверно", /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/iu)
-            //valid(document.querySelector("#<?php //= $arParams["TOKEN"] ?>// input[name='phone']"), "phone", "Номер введен неверно", /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/)
+            window.FormStatus = true;
+            validContacts(document.querySelector("#<?= $arParams["TOKEN"] ?> input[name='NAME']"), "NAME", "Поле обязательно к заполнению")
+            validContacts(document.querySelector("#<?= $arParams["TOKEN"] ?> input[name='MAIL']"), "MAIL", "Поле обязательно к заполнению")
         }
+
     })
     ;
 </script>
-
-

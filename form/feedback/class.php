@@ -37,7 +37,7 @@ class Form extends CBitrixComponent
     {
         // поля запроса и метод
         $queryData = http_build_query($request);
-        $queryUrl = 'https://investsochi.bitrix24.ru/rest/140/y4sjwv9qaqsj0dh4/' . $method;
+//        $queryUrl = 'https://investsochi.bitrix24.ru/rest/140/y4sjwv9qaqsj0dh4/' . $method;
 
         $curl = curl_init();
         curl_setopt_array($curl, array(
@@ -104,7 +104,7 @@ class Form extends CBitrixComponent
 
         $request = [
             'fields' => [
-                "TITLE" => 'Заполнена форма на сайте investsochi.ru', //Заголовок лида
+                "TITLE" => 'Заполнена форма на сайте ' . $_SERVER["SERVER_NAME"], //Заголовок лида
                 "SOURCE_ID" => 'WEB', //Источник лида
                 "NAME" => $fields['NAME'] ? $fields['NAME'] : 'Имя не заполнено', //Имя контакта
                 "EMAIL" => [["VALUE" => $fields['EMAIL'], "VALUE_TYPE" => "WORK"]], //Почта контакта
@@ -130,10 +130,35 @@ class Form extends CBitrixComponent
                 $urlInAdmin = 'http://' . $_SERVER["SERVER_NAME"] . '/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->arParams['IBLOCK_ID'] . '&type=Forms&lang=ru&ID=' . $id . '&find_section_section=-1&WF=Y';
                 $_POST["PAGE"] = "https://" . $_SERVER["SERVER_NAME"] . $APPLICATION->GetCurPage();
                 $_POST["ADMIN_URL"] = $urlInAdmin;
-                echo CEvent::Send($event, SITE_ID, $_POST);
+				CEvent::Send($event, SITE_ID, $_POST);
             }
         }
     }
+	
+	private function reCaptchaCheck()
+	{
+		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recaptcha_response'])) {
+			
+			// Создаем POST запрос
+			$recaptcha_url = 'https://www.google.com/recaptcha/api/siteverify';
+			$recaptcha_secret = '6LeklLwpAAAAANxgQJsH7-M6ZJpI6dJL-3GoV_Yt';
+			$recaptcha_response = $_POST['recaptcha_response'];
+			
+			// Отправляем POST запрос и декодируем результаты ответа
+			$recaptcha = file_get_contents($recaptcha_url . '?secret=' . $recaptcha_secret . '&response=' . $recaptcha_response);
+			$recaptcha = json_decode($recaptcha);
+			
+			// Принимаем меры в зависимости от полученного результата
+			file_put_contents($_SERVER["DOCUMENT_ROOT"] . "/test.txt", $recaptcha->score);
+			if ($recaptcha->score >= 0.5) {
+				// Проверка пройдена - отправляем сообщение.
+			} else {
+				echo json_encode(["STATUS" => "error"]);
+				die();
+			}
+			
+		}	
+	}
 
     private function addToIblock() // добавление в инфоблок
     {
@@ -164,10 +189,15 @@ class Form extends CBitrixComponent
     {
         // если есть $_POST - компонент не инициализирует форму,а запускает ее отправку
         if ($this->request->getPost("TOKEN") == $this->arParams["TOKEN"]) {
+			CModule::IncludeModule("iblock");
+			
             $GLOBALS["APPLICATION"]->RestartBuffer(); // строка для удобства отладки
+	        if($this->arParams["CAPTCHA"] == "Y") $this->reCaptchaCheck();
             $id = $this->addToIblock(); // добавление в инфоблок
             $this->mailer($id); // отправка почты
-            $this->leadCreate(); // создание лида (b24)
+	        echo json_encode(["STATUS" => "success"]);
+			die();
+			// $this->leadCreate(); // создание лида (b24)
         } else {
             // обычный запуск компонента
             $this->includeComponentTemplate();
